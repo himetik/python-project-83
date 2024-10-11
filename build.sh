@@ -1,0 +1,1 @@
+make install && psql -d $DATABASE_URL < database.sql
