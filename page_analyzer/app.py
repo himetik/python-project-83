@@ -115,3 +115,13 @@ def get_accessibility_content(response: Response) -> dict:
         "title": title_tag.text if title_tag else "",
         "description": description_tag["content"] if description_tag else "",
     }
+
+
+@app.errorhandler(404)
+def page_not_found(e):
+    return render_template("404.html"), HTTPStatus.NOT_FOUND
+
+
+@app.errorhandler(500)
+def page_not_found(e):
+    return render_template("500.html"), HTTPStatus.NOT_FOUND
