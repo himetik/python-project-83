@@ -1,6 +1,6 @@
 import psycopg2
 from psycopg2 import pool
-from typing import Callable, Any, Optional
+from typing import Callable, Optional
 
 from page_analyzer.config import DATABASE_URL, MINCONN, MAXCONN
 
