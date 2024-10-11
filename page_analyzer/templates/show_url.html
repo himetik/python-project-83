@@ -27,7 +27,7 @@
       </form>
       <div>
         <table class="table table-bordered table-hover mt-2" data-test="checks">
-          <tbody>
+          <thead>
             <tr>
               <th>ID</th>
               <th>Код ответа</th>
@@ -36,6 +36,8 @@
               <th>description</th>
               <th>Дата создания</th>
             </tr>
+          </thead>
+          <tbody>
             {% for check in checks %}
             <tr>
               <td>{{ check.id }}</td>
