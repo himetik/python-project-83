@@ -1,0 +1,27 @@
+name: Snyk Security Check
+
+on:
+  push:
+    branches: [ '**' ]
+  pull_request:
+    branches: [ '**' ]
+
+jobs:
+  snyk-security-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      - name: Install Poetry and dependencies
+        run: |
+          pip install poetry
+          poetry install
+      - name: Run Snyk
+        run: |
+          npm install -g snyk
+          poetry run snyk test --all-projects
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
