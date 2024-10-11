@@ -4,12 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Анализатор страниц</title>
-    <meta name="description" content="Анализатор страниц на Python">
-    <meta name="keywords" content="Python, анализатор страниц, веб-проект">
-    <meta name="author" content="Имя Автора">
-    <link
-        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
-        rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
   </head>
   <body class="min-vh-100 d-flex flex-column">
     <header class="flex-shrink-0">
@@ -24,24 +19,24 @@
             </div>
         </nav>
     </header>
-    <main class="flex-grow-1">
+    {% with messages=get_flashed_messages(with_categories=True) %}
       {% if messages %}
         {% for category, message in messages %}
           <div class="alert alert-{{ category }}" role="alert">{{ message }}</div>
         {% endfor %}
       {% endif %}
-      {% block content %}
-      {% endblock %}
-    </main>
+    {% endwith %}
+    {% block content %}
+    {% endblock %}
     <footer class="border-top py-3 mt-5 flex-shrink-0">
-      <div class="container-lg">
-        <div class="text-center">
-          <a href="https://github.com/himetik/python-project-83/" target="_blank" rel="noopener noreferrer">Source</a>
+        <div class="container-lg">
+            <div class="text-center">
+                <a href="https://github.com/himetik/python-project-83" target="_blank">Source code</a>
+            </div>
         </div>
-      </div>
     </footer>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
-            integrity="sha384-8dX7pK0Y5bswRxuVuBoSYDSJpPnsYxck/8t2l3Q0yyFejcELyKpN7fFjsZso6Igt"
-            crossorigin="anonymous"></script>
-  </body>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p"
+        crossorigin="anonymous"></script>
+</body>
 </html>
