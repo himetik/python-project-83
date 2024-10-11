@@ -118,10 +118,10 @@ def get_accessibility_content(response: Response) -> dict:
 
 
 @app.errorhandler(404)
-def page_not_found(e):
+def not_found_404(e):
     return render_template("404.html"), HTTPStatus.NOT_FOUND
 
 
 @app.errorhandler(500)
-def page_not_found(e):
-    return render_template("500.html"), HTTPStatus.NOT_FOUND
+def internal_error_500(e):
+    return render_template("500.html"), HTTPStatus.INTERNAL_SERVER_ERROR
