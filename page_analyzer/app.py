@@ -15,7 +15,8 @@ import page_analyzer.db as db
 from .config import SECRET_KEY
 from .db import Check
 from urllib.parse import urlparse
-
+from bs4 import BeautifulSoup
+from typing import Union, Tuple
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = SECRET_KEY
@@ -27,35 +28,34 @@ def index() -> str:
 
 
 @app.post("/urls")
-def add_url() -> str | tuple[str, int] | Response:
-    raw_url = request.form.get("url")
-    url = normalize_url(raw_url)
-
-    if not validate_url(url):
-        return handle_flash_and_render("Некорректный URL", "danger", "index.html", HTTPStatus.UNPROCESSABLE_ENTITY)
+def add_url() -> Union[str, Tuple[str, int], Response]:
+    url = normalize_url(request.form.get("url"))
+    if not validator(url):
+        flash("Некорректный URL", "danger")
+        return render_template(
+            "index.html",
+            messages=get_flashed_messages(with_categories=True)
+        ), HTTPStatus.UNPROCESSABLE_ENTITY
 
     url_id = db.get_url_id(url_name=url)
-
     if url_id:
         flash("Страница уже существует", "info")
-        return redirect(url_for("show_url_info", id=url_id))
-
-    url_id = db.add_url(url_name=url)
-    flash("Страница успешно добавлена", "success")
+    else:
+        url_id = db.add_url(url_name=url)
+        flash("Страница успешно добавлена", "success")
+    
     return redirect(url_for("show_url_info", id=url_id))
 
 
 @app.route("/urls/<int:id>")
-def show_url_info(id: int) -> str | tuple[str, int]:
+def show_url_info(id: int) -> Union[str, Tuple[str, int]]:
     url = db.get_url(url_id=id)
+    if not url:
+        return render_template("404.html"), HTTPStatus.NOT_FOUND
 
-    if url:
-        checks = db.get_url_checks(url_id=id)
-        sorted_checks = sorted(checks, key=lambda x: x.id, reverse=True)
-        messages = get_flashed_messages(with_categories=True)
-        return render_template("show_url.html", url=url, checks=sorted_checks, messages=messages)
-
-    return render_template("404.html"), HTTPStatus.NOT_FOUND
+    checks = sorted(db.get_url_checks(url_id=id), key=lambda x: x.id, reverse=True)
+    messages = get_flashed_messages(with_categories=True)
+    return render_template("show_url.html", url=url, checks=checks, messages=messages)
 
 
 @app.get("/urls")
@@ -67,39 +67,25 @@ def show_urls() -> str:
 @app.post("/urls/<int:id>/checks")
 def initialize_check(id: int) -> Response:
     url = db.get_url(url_id=id)
-
-    if not url:
-        return handle_flash_and_redirect("Произошла ошибка при проверке", "danger", "show_url_info", id)
-
     try:
-        response = requests.get(url.name)
+        response = requests.get(url.name, timeout=10)
         response.raise_for_status()
+        accessibility_data = get_accessibility_content(response)
+        check = Check(url_id=id, **accessibility_data)
+        db.add_check(check=check)
+        flash("Страница успешно проверена", "success")
     except requests.exceptions.RequestException:
-        return handle_flash_and_redirect("Произошла ошибка при проверке", "danger", "show_url_info", id)
-
-    accessibility_data = {}  
-    check = Check(url_id=id, **accessibility_data)
-    db.add_check(check=check)
-    flash("Страница успешно проверена", "success")
+        flash("Произошла ошибка при проверке", "danger")
+    except Exception as e:
+        flash(f"Ошибка при анализе доступности: {str(e)}", "danger")
 
     return redirect(url_for("show_url_info", id=id))
 
 
 def normalize_url(url: str) -> str:
-    parsed_url = urlparse(url)
-    return f"{parsed_url.scheme}://{parsed_url.netloc}"
+    parsed = urlparse(url)
+    return f"{parsed.scheme}://{parsed.netloc}"
 
 
-def validate_url(url: str) -> bool:
-    return validator(url)
-
-
-def handle_flash_and_render(message: str, category: str, template: str, status_code: int) -> tuple[str, int]:
-    flash(message, category)
-    messages = get_flashed_messages(with_categories=True)
-    return render_template(template, messages=messages), status_code
-
-
-def handle_flash_and_redirect(message: str, category: str, endpoint: str, id: int) -> Response:
-    flash(message, category)
-    return redirect(url_for(endpoint, id=id))
+def get_accessibility_content(response: Response) -> dict:
+    return {"status_code": response.status_code}
