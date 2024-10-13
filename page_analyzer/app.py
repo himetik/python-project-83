@@ -28,6 +28,9 @@ def index() -> str:
 
 @app.post("/urls")
 def add_url() -> str | tuple[str, int]:
+    """
+    Processes URL submission, adds it to the database, and redirects to its detail page.
+    """
     url = normalize_url(request.form.get("url", "").strip())
 
     if not validator(url):
@@ -46,12 +49,18 @@ def add_url() -> str | tuple[str, int]:
 
 @app.get("/urls")
 def show_urls() -> str:
+    """
+    Displays the list of all URLs with their most recent checks.
+    """
     urls_data = db.get_all_urls_with_last_check()
     return render_template("list_urls.html", urls_data=urls_data)
 
 
 @app.route("/urls/<int:id>")
 def show_url_info(id: int) -> str | tuple[str, int]:
+    """
+    Displays details and checks for a specific URL by its ID.
+    """
     url = db.get_url(url_id=id)
 
     if not url:
@@ -68,6 +77,9 @@ def show_url_info(id: int) -> str | tuple[str, int]:
 
 @app.post("/urls/<int:id>/checks")
 def initialize_check(id: int) -> str:
+    """
+    Performs a check on a URL, stores the result, and redirects to the URL's detail page.
+    """
     url = db.get_url(url_id=id)
 
     if not url:
