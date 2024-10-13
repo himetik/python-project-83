@@ -9,6 +9,9 @@ def normalize_url(url: str) -> str:
 
 
 def get_accessibility_content(response: Response) -> dict:
+    """
+    Parses the response HTML and extracts the status code, H1 tag, title, and description.
+    """
     soup = BeautifulSoup(response.text, "html.parser")
     return {
         "status_code": response.status_code,
