@@ -1,23 +1,17 @@
 from flask import (
-    Flask,
-    render_template,
-    request,
-    flash,
-    get_flashed_messages,
-    url_for,
-    redirect,
+    Flask, render_template, request, flash, get_flashed_messages,
+    url_for, redirect
 )
 import requests
-from requests import Response
 from validators import url as validator
 from http import HTTPStatus
+import logging
 
 import page_analyzer.db as db
 from .config import SECRET_KEY
+from .utils import normalize_url, get_accessibility_content
 from .db import Check
-from urllib.parse import urlparse
-from bs4 import BeautifulSoup
-import logging
+
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = SECRET_KEY
@@ -33,8 +27,9 @@ def index() -> str:
 
 
 @app.post("/urls")
-def add_url() -> str | tuple[str, int] | Response:
+def add_url() -> str | tuple[str, int]:
     url = normalize_url(request.form.get("url", "").strip())
+
     if not validator(url):
         flash("Некорректный URL", "danger")
         return render_template("index.html", messages=get_flashed_messages(with_categories=True)), HTTPStatus.UNPROCESSABLE_ENTITY
@@ -45,6 +40,7 @@ def add_url() -> str | tuple[str, int] | Response:
     else:
         url_id = db.add_url(url_name=url)
         flash("Страница успешно добавлена", "success")
+
     return redirect(url_for("show_url_info", id=url_id))
 
 
@@ -57,19 +53,25 @@ def show_urls() -> str:
 @app.route("/urls/<int:id>")
 def show_url_info(id: int) -> str | tuple[str, int]:
     url = db.get_url(url_id=id)
-    if url:
-        checks = db.get_url_checks(url_id=id)
-        sorted_checks = sorted(checks, key=lambda x: x.id, reverse=True)
-        messages = get_flashed_messages(with_categories=True)
-        return render_template(
-            "show_url.html", url=url, checks=sorted_checks, messages=messages
-        )
-    return render_template("404.html"), HTTPStatus.NOT_FOUND
+
+    if not url:
+        return render_template("404.html"), HTTPStatus.NOT_FOUND
+
+    checks = db.get_url_checks(url_id=id)
+    return render_template(
+        "show_url.html",
+        url=url,
+        checks=sorted(checks, key=lambda x: x.id, reverse=True),
+        messages=get_flashed_messages(with_categories=True)
+    )
 
 
 @app.post("/urls/<int:id>/checks")
-def initialize_check(id: int) -> Response:
+def initialize_check(id: int) -> str:
     url = db.get_url(url_id=id)
+
+    if not url:
+        return render_template("404.html"), HTTPStatus.NOT_FOUND
 
     try:
         response = requests.get(url.name)
@@ -80,29 +82,11 @@ def initialize_check(id: int) -> Response:
         return redirect(url_for("show_url_info", id=id))
 
     accessibility_data = get_accessibility_content(response)
-
     check = Check(url_id=id, **accessibility_data)
-
-    db.add_check(check=check)
+    db.add_check(check)
 
     flash("Страница успешно проверена", "success")
-
     return redirect(url_for("show_url_info", id=id))
-
-
-def normalize_url(url: str) -> str:
-    parsed = urlparse(url)
-    return f"{parsed.scheme}://{parsed.netloc}"
-
-
-def get_accessibility_content(response: Response) -> dict:
-    soup = BeautifulSoup(response.text, "html.parser")
-    return {
-        "status_code": response.status_code,
-        "h1": soup.find("h1").text if soup.find("h1") else "",
-        "title": soup.title.text if soup.title else "",
-        "description": soup.find("meta", attrs={"name": "description"})["content"] if soup.find("meta", attrs={"name": "description"}) else "",
-    }
 
 
 @app.errorhandler(404)

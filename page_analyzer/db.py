@@ -8,6 +8,7 @@ from functools import wraps
 
 from page_analyzer.config import DATABASE_URL, MINCONN, MAXCONN
 
+
 logging.basicConfig(level=logging.ERROR)
 logger = logging.getLogger(__name__)
 
