@@ -34,25 +34,24 @@ def index() -> str:
 
 @app.post("/urls")
 def add_url() -> str | tuple[str, int] | Response:
-    raw_url = request.form.get("url", "").strip()
-    url = normalize_url(raw_url)
-
+    url = normalize_url(request.form.get("url", "").strip())
     if not validator(url):
         flash("Некорректный URL", "danger")
-        messages = get_flashed_messages(with_categories=True)
-        return (
-            render_template("index.html", messages=messages),
-            HTTPStatus.UNPROCESSABLE_ENTITY,
-        )
+        return render_template("index.html", messages=get_flashed_messages(with_categories=True)), HTTPStatus.UNPROCESSABLE_ENTITY
 
     url_id = db.get_url_id(url_name=url)
     if url_id:
         flash("Страница уже существует", "info")
-        return redirect(url_for("show_url_info", id=url_id))
-
-    url_id = db.add_url(url_name=url)
-    flash("Страница успешно добавлена", "success")
+    else:
+        url_id = db.add_url(url_name=url)
+        flash("Страница успешно добавлена", "success")
     return redirect(url_for("show_url_info", id=url_id))
+
+
+@app.get("/urls")
+def show_urls() -> str:
+    urls_data = db.get_all_urls_with_last_check()
+    return render_template("list_urls.html", urls_data=urls_data)
 
 
 @app.route("/urls/<int:id>")
@@ -66,12 +65,6 @@ def show_url_info(id: int) -> str | tuple[str, int]:
             "show_url.html", url=url, checks=sorted_checks, messages=messages
         )
     return render_template("404.html"), HTTPStatus.NOT_FOUND
-
-
-@app.get("/urls")
-def show_urls() -> str:
-    urls_data = db.get_all_urls_with_last_check()
-    return render_template("list_urls.html", urls_data=urls_data)
 
 
 @app.post("/urls/<int:id>/checks")
@@ -98,22 +91,17 @@ def initialize_check(id: int) -> Response:
 
 
 def normalize_url(url: str) -> str:
-    o = urlparse(url)
-    return f"{o.scheme}://{o.netloc}"
+    parsed = urlparse(url)
+    return f"{parsed.scheme}://{parsed.netloc}"
 
 
 def get_accessibility_content(response: Response) -> dict:
     soup = BeautifulSoup(response.text, "html.parser")
-
-    h1_tag = soup.find("h1")
-    title_tag = soup.title
-    description_tag = soup.find("meta", attrs={"name": "description"})
-
     return {
         "status_code": response.status_code,
-        "h1": h1_tag.text if h1_tag else "",
-        "title": title_tag.text if title_tag else "",
-        "description": description_tag["content"] if description_tag else "",
+        "h1": soup.find("h1").text if soup.find("h1") else "",
+        "title": soup.title.text if soup.title else "",
+        "description": soup.find("meta", attrs={"name": "description"})["content"] if soup.find("meta", attrs={"name": "description"}) else "",
     }
 
 
