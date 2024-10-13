@@ -49,6 +49,9 @@ class DatabasePool:
 
 
 def db_connection(func: Callable) -> Callable:
+    """
+    Decorator that manages a database connection, handling commits, rollbacks, and connection pooling.
+    """
     @wraps(func)
     def wrapper(*args, conn: Optional[psycopg2.extensions.connection] = None, **kwargs):
         db_pool = DatabasePool()
@@ -70,6 +73,9 @@ def db_connection(func: Callable) -> Callable:
 
 @db_connection
 def get_url_id(*, conn: psycopg2.extensions.connection, url_name: str) -> Optional[int]:
+    """
+    Fetches the ID of a URL by its name from the database.
+    """
     query = "SELECT id FROM urls WHERE name = %s;"
     with conn.cursor() as cursor:
         cursor.execute(query, (url_name,))
@@ -79,6 +85,9 @@ def get_url_id(*, conn: psycopg2.extensions.connection, url_name: str) -> Option
 
 @db_connection
 def get_url_checks(*, conn: psycopg2.extensions.connection, url_id: int) -> List[Check]:
+    """
+    Retrieves a list of checks for a given URL ID.
+    """
     query = """
         SELECT id, status_code, COALESCE(h1, ''), COALESCE(title, ''),
                COALESCE(description, ''), created_at
@@ -94,6 +103,9 @@ def get_url_checks(*, conn: psycopg2.extensions.connection, url_id: int) -> List
 
 @db_connection
 def get_url(*, conn: psycopg2.extensions.connection, url_id: int) -> Optional[Url]:
+    """
+    Retrieves a URL's details by its ID from the database.
+    """
     query = "SELECT id, name, created_at FROM urls WHERE id = %s"
     with conn.cursor() as cursor:
         cursor.execute(query, (url_id,))
@@ -105,6 +117,9 @@ def get_url(*, conn: psycopg2.extensions.connection, url_id: int) -> Optional[Ur
 def get_all_urls_with_last_check(
     *, conn: psycopg2.extensions.connection
 ) -> List[Tuple[Url, Check]]:
+    """
+    Retrieves all URLs along with their most recent check from the database.
+    """
     query = """
         SELECT DISTINCT ON (u.id)
             u.id, u.name, MAX(uc.created_at) AS last_check, uc.status_code
@@ -123,6 +138,9 @@ def get_all_urls_with_last_check(
 
 @db_connection
 def add_url(*, conn: psycopg2.extensions.connection, url_name: str) -> int:
+    """
+    Inserts a new URL into the database and returns its ID.
+    """
     query = "INSERT INTO urls (name, created_at) VALUES (%s, %s) RETURNING id"
     with conn.cursor() as cursor:
         cursor.execute(query, (url_name, date.today()))
@@ -132,6 +150,9 @@ def add_url(*, conn: psycopg2.extensions.connection, url_name: str) -> int:
 
 @db_connection
 def add_check(*, conn: psycopg2.extensions.connection, check: Check) -> None:
+    """
+    Inserts a new check for a URL into the database.
+    """
     query = """
         INSERT INTO url_checks
         (url_id, status_code, h1, title, description, created_at)
