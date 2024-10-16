@@ -1,6 +1,6 @@
 import psycopg2
 from psycopg2 import pool
-from typing import Callable, Optional, List, Tuple
+from typing import Optional, List, Tuple
 from dataclasses import dataclass
 from datetime import date
 import logging
